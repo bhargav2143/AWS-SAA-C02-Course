@@ -1,1 +1,123 @@
 
+1.3.1. IAM Identity Policies
+Identity Policies are attached to AWS Identities which are IAM users, IAM groups, and IAM roles. These are a set of security statements that ALLOW or DENY access to AWS resources.
+
+When an identity attempts to access AWS resources, that identity needs to prove who it is to AWS, a process known as Authentication. Once authenticated, that identity is known as an authenticated identity
+
+1.3.1.1. Statement Components
+Statement ID (SID): Optional field that should help describe
+The resource you're interacting
+The actions you're trying to perform
+Effect: is either allow or deny.
+It is possible to be allowed and denied at the same time
+Action are formatted service:operation. There are three options:
+specific individual action
+wildcard as an action
+list of multiple independent actions
+Resource: similar to action except for format arn:aws:s3:::catgifs
+1.3.1.2. Priority Level
+Explicit Deny: Denies access to a particular resource cannot be overruled.
+Explicit Allow: Allows access so long there is not an explicit deny.
+Default Deny (Implicit): IAM identities start off with no resource access.
+1.3.1.3. Inline Policies and Managed Policies
+Inline Policy: grants access and assigned on each accounts individually.
+Managed Policy (best practice): one policy is applied to all users at once.
+1.3.2. IAM Users
+Identity used for anything requiring long-term AWS access
+
+Humans
+Applications
+Service Accounts
+If you can name a thing to use the AWS account, this is an IAM user.
+
+When a principal wants to request to perform an action, it will authenticate against an identity within IAM. An IAM user is an identity which can be used in this way.
+
+There are two ways to authenticate:
+
+Username and Password
+Access Keys (CLI)
+Once the Principal has authenticated, it becomes an authenticated identity
+
+1.3.2.1. Amazon Resource Name (ARN)
+Uniquely identify resources within any AWS accounts.
+
+This allows you to refer to a single or group of resources. This prevents individual resources from the same account but in different regions from being confused.
+
+ARN generally follows the same format:
+
+arn:partition:service:region:account-id:resource-id
+arn:partition:service:region:account-id:resource-type/resource-id
+arn:partition:service:region:account-id:resource-type:resource-id
+partition: almost always aws unless it is china aws-cn
+region: can be a double colon (::) if that doesn't matter
+account-id: the account that owns the resource
+EC2 needs this
+S3 does not need account-id because its globally unique
+resource-type/id: changes based on the resource
+An example that leads to confusion:
+
+arn:aws:s3:::catgifs
+This references an actual bucket
+arn:aws:s3:::catgifs/*
+This refers to objects in that bucket, but not the bucket itself.
+These two ARNs do not overlap
+
+1.3.2.2. IAM FACTS
+5,000 IAM users per account
+IAM user can be a member of 10 groups
+1.3.3. IAM Groups
+Containers for users. You cannot login to IAM groups They have no credentials of their own. Used solely for management of IAM users.
+
+Groups bring two benefits
+
+Effective administrative style management of users based on the team
+Groups can have Inline and Managed policies attached.
+AWS merges all of the policies from all groups the user is in together.
+
+The 5000 IAM user limit applies to groups.
+There is no all users IAM group.
+You can create a group and add all users into that group, but it needs to be created and managed on your own.
+No Nesting: You cannot have groups within groups.
+300 Group Limit per account. This can be fixed with a support ticket.
+Resource Policy A bucket can have a policy associated with that bucket. It does so by referencing the identity using an ARN (Amazon Reference Name). A policy on a resource can reference IAM users and IAM roles by the ARN. A bucket can give access to one or more users or one or more roles.
+
+GROUPS ARE NOT A TRUE IDENTITY THEY CAN'T BE REFERENCED AS A PRINCIPAL IN A POLICY
+
+An S3 Resource cannot grant access to a group, it is not an identity. Groups are used to allow permissions to be assigned to IAM users.
+
+1.3.4. IAM Roles
+A single thing that uses an identity is an IAM User.
+
+IAM Roles are also identities that are used by large groups of individuals. If have more than 5000 principals, it could be a candidate for an IAM Role.
+
+IAM Roles are assumed you become that role.
+
+This can be used short term by other identities.
+
+IAM Users can have inline or managed policies which control which permissions the identity gets within AWS
+
+Policies which grant, allow or deny, permissions based on their associations.
+
+IAM Roles have two types of roles can be attached.
+
+Trust Policy: Specifies which identities are allowed to assume the role.
+Permissions Policy: Specifies what the role is allowed to do.
+If an identity is allowed on the Trust Policy, it is given a set of Temporary Security Credentials. Similar to access keys except they are time limited to expire. The identity will need to renew them by reassuming the role.
+
+Every time the Temporary Security Credentials are used, the access is checked against the Permissions Policy. If you change the policy, the permissions of the temp credentials also change.
+
+Roles are real identities and can be referenced within resource policies.
+
+Secure Token Service (sts:AssumeRole) this is what generates the temporary security credentials (TSC).
+
+1.3.5. When to use IAM Roles
+Lambda Execution Role. For a given lambda function, you cannot determine the number of principals which suggested a Role might be the ideal identity to use.
+
+Trust Policy: to trust the Lambda Service
+Permission Policy: to grant access to AWS services.
+When this is run, it uses the sts:AssumeRole to generate keys to CloudWatch and S3.
+
+It is better when possible to use an IAM Role versus attaching a policy.
+
+1.3.5.1. Emergency or out of the usual situations
+Break Glass Situation - There is a key for something the team does not normally have access to. When you break the glass, you must have a reason to do. A role can have an Emergency Role which will allow further access if its really needed.
